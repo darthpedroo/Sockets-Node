@@ -3,13 +3,14 @@ import io from 'socket.io-client'
 import {useEffect, useState} from "react"
 
 const socket = io.connect("http://localhost:3001")
-
 function App() {
 
   const [room, setRoom] = useState("")
-
+  const [userId, setUserId] = useState("")
+  
   const[message, setMessage] = useState("")
   const [messageReceived, setMessageReceived] = useState([])
+  const [cards, setCards] = useState([])
 
   const sendMessage = () => {
     socket.emit("send_message", {message: message, room:room})
@@ -21,35 +22,43 @@ function App() {
     }
   }
 
-  const receiveCards = () => {
-    console.log("AWSA")
-    socket.emit("test", socket.id)
+  const testSocketId = () =>{
+    console.log("testSocketId: ", userId)
 
+    //socket.emit("send_cards", userId)
   }
 
   useEffect(() => {
-    console.log(socket)
-    socket.emit("firstInput", socket.id)
-    
-  }, []); 
-
-  useEffect(() => {
-
-    console.log("sus...")
-
+    socket.on("connect", () => {
+      console.log("connected")
+      setUserId(socket.id);
+    })
+  
     socket.on("receive_message", (data) => {
       setMessageReceived(prevMessages => [
         ...prevMessages,
         data.message
       ]);
     });
-    
-    // Cleanup function to remove event listener
+  
+    socket.on("initial_cards", (initialCards) => {
+      console.log("Received initial cards:", initialCards);
+      setCards(initialCards);
+    });
+  
     return () => {
       socket.off("receive_message");
+      socket.off("test"); // Make sure to remove the event listener when component unmounts
     };
-  }, []); 
+  }, []);
 
+
+
+  useEffect(()=> {
+    console.log("Hello Ohio")
+    socket.emit("join_room", userId)
+
+  },[userId])
   
 
 
@@ -57,7 +66,7 @@ function App() {
   return (
     <div >
 
-      <button onClick={receiveCards}>XD</button>
+      <button onClick={testSocketId}>XD</button>
 
       <input placeholder="Room Code" onChange={(event) => {setRoom(event.target.value)}}>
 
@@ -82,6 +91,16 @@ function App() {
           <li key={index}>{msg}</li>
         ))}
       </ul>
+
+
+      <div>
+        <ul>
+        {cards.map((msg, index) => (
+          <li key={index}>{msg}</li>
+        ))}
+
+        </ul>
+      </div>
 
     </div>
   );
